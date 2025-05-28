@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Assignments</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Tracker</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Dashboard</a></li>
+                    <li><a href="/students">Students</a></li>
+                    <li><a href="/attendance">Attendance</a></li>
+                    <li><a href="/assignments">Assignments</a></li>
+                    <li><a href="/courses">Courses</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>Manage Assignments</h2>
+
+        <section class="form-section">
+            <h3>Add New Assignment</h3>
+            <form action="/assignments" method="POST" class="data-form">
+                <div class="form-group">
+                    <label for="courseId">Course:</label>
+                    <select id="courseId" name="courseId" required>
+                        <option value="">Select a Course</option>
+                        <% if (courses && courses.length > 0) { %>
+                            <% courses.forEach(course => { %>
+                                <option value="<%= course.course_id %>"><%= course.course_code %> - <%= course.course_name %></option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assignmentName">Assignment Name:</label>
+                    <input type="text" id="assignmentName" name="assignmentName" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="dueDate">Due Date & Time:</label>
+                    <input type="datetime-local" id="dueDate" name="dueDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="maxScore">Max Score:</label>
+                    <input type="number" id="maxScore" name="maxScore" step="0.01" min="0">
+                </div>
+                <button type="submit" class="btn">Add Assignment</button>
+            </form>
+        </section>
+
+        <section class="data-display-section">
+            <h3>All Assignments</h3>
+            <% if (assignments && assignments.length > 0) { %>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Course</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Due Date</th>
+                        <th>Max Score</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% assignments.forEach(assignment => { %>
+                    <tr>
+                        <td><%= assignment.assignment_id %></td>
+                        <td><%= assignment.course_code %> - <%= assignment.course_name %></td>
+                        <td><%= assignment.assignment_name %></td>
+                        <td><%= assignment.description %></td>
+                        <td><%= new Date(assignment.due_date).toLocaleString() %></td>
+                        <td><%= assignment.max_score %></td>
+                        <td>
+                            <form action="/assignments/submit-score" method="GET" style="display:inline;">
+                                <input type="hidden" name="assignmentId" value="<%= assignment.assignment_id %>">
+                                <button type="submit" class="btn btn-small">Submit Scores</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <% } else { %>
+            <p>No assignments found. Add a new assignment using the form above.</p>
+            <% } %>
+        </section>
+
+        <section class="data-display-section">
+            <h3>Submit Scores for Assignment</h3>
+            <% if (selectedAssignment) { %>
+                <h4>Assignment: <%= selectedAssignment.assignment_name %> (Course: <%= selectedAssignment.course_name %>)</h4>
+                <form action="/assignments/submit-scores" method="POST" class="data-form">
+                    <input type="hidden" name="assignmentId" value="<%= selectedAssignment.assignment_id %>">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Score</th>
+                                <th>Feedback</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (enrollmentsForAssignment && enrollmentsForAssignment.length > 0) { %>
+                                <% enrollmentsForAssignment.forEach(enrollment => { %>
+                                <tr>
+                                    <td><%= enrollment.first_name %> <%= enrollment.last_name %></td>
+                                    <td>
+                                        <input type="hidden" name="studentIds[]" value="<%= enrollment.student_id %>">
+                                        <input type="number" name="score_<%= enrollment.student_id %>" step="0.01" min="0" max="<%= selectedAssignment.max_score %>" value="<%= enrollment.score || '' %>">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="feedback_<%= enrollment.student_id %>" value="<%= enrollment.feedback || '' %>">
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr><td colspan="3">No students enrolled in this course.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn">Submit Scores</button>
+                </form>
+            <% } else if (assignments && assignments.length > 0) { %>
+                <p>Select an assignment from the list above to submit scores.</p>
+            <% } %>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Student Tracker. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Attendance</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Tracker</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Dashboard</a></li>
+                    <li><a href="/students">Students</a></li>
+                    <li><a href="/attendance">Attendance</a></li>
+                    <li><a href="/assignments">Assignments</a></li>
+                    <li><a href="/courses">Courses</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>Manage Attendance</h2>
+
+        <section class="form-section">
+            <h3>Record Attendance for a Session</h3>
+            <form action="/attendance/record" method="POST" class="data-form">
+                <div class="form-group">
+                    <label for="courseId">Course:</label>
+                    <select id="courseId" name="courseId" required>
+                        <option value="">Select a Course</option>
+                        <% if (courses && courses.length > 0) { %>
+                            <% courses.forEach(course => { %>
+                                <option value="<%= course.course_id %>"><%= course.course_code %> - <%= course.course_name %></option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sessionDate">Session Date:</label>
+                    <input type="date" id="sessionDate" name="sessionDate" value="<%= new Date().toISOString().slice(0,10) %>" required>
+                </div>
+                <div class="form-group">
+                    <label for="sessionTime">Session Time:</label>
+                    <input type="time" id="sessionTime" name="sessionTime" value="<%= new Date().toTimeString().slice(0,5) %>">
+                </div>
+                <div class="form-group">
+                    <label for="topic">Topic:</label>
+                    <input type="text" id="topic" name="topic">
+                </div>
+                <button type="submit" class="btn">Create Attendance Session</button>
+            </form>
+        </section>
+
+        <section class="data-display-section">
+            <h3>Recent Attendance Sessions</h3>
+            <% if (sessions && sessions.length > 0) { %>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Course</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Topic</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% sessions.forEach(session => { %>
+                    <tr>
+                        <td><%= session.session_id %></td>
+                        <td><%= session.course_name %> (<%= session.course_code %>)</td>
+                        <td><%= new Date(session.session_date).toLocaleDateString() %></td>
+                        <td><%= session.session_time ? session.session_time.slice(0,5) : 'N/A' %></td>
+                        <td><%= session.topic %></td>
+                        <td>
+                            <form action="/attendance/mark" method="GET" style="display:inline;">
+                                <input type="hidden" name="sessionId" value="<%= session.session_id %>">
+                                <button type="submit" class="btn btn-small">Mark Attendance</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <% } else { %>
+            <p>No attendance sessions found. Create a new session above.</p>
+            <% } %>
+        </section>
+
+        <section class="data-display-section">
+            <h3>Mark Attendance for Session</h3>
+            <% if (selectedSession) { %>
+                <h4>Session: <%= selectedSession.course_name %> on <%= new Date(selectedSession.session_date).toLocaleDateString() %> at <%= selectedSession.session_time.slice(0,5) %></h4>
+                <form action="/attendance/submit" method="POST" class="data-form">
+                    <input type="hidden" name="sessionId" value="<%= selectedSession.session_id %>">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (enrollments && enrollments.length > 0) { %>
+                                <% enrollments.forEach(enrollment => { %>
+                                <tr>
+                                    <td><%= enrollment.first_name %> <%= enrollment.last_name %></td>
+                                    <td>
+                                        <input type="hidden" name="enrollmentIds[]" value="<%= enrollment.enrollment_id %>">
+                                        <select name="status_<%= enrollment.enrollment_id %>" required>
+                                            <option value="Present" <%= enrollment.status === 'Present' ? 'selected' : '' %>>Present</option>
+                                            <option value="Absent" <%= enrollment.status === 'Absent' ? 'selected' : '' %>>Absent</option>
+                                            <option value="Late" <%= enrollment.status === 'Late' ? 'selected' : '' %>>Late</option>
+                                            <option value="Excused" <%= enrollment.status === 'Excused' ? 'selected' : '' %>>Excused</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="notes_<%= enrollment.enrollment_id %>" value="<%= enrollment.notes || '' %>">
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr><td colspan="3">No students enrolled in this course.</td></tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                    <button type="submit" class="btn">Submit Attendance</button>
+                </form>
+            <% } else if (sessions && sessions.length > 0) { %>
+                <p>Select a session from the list above to mark attendance.</p>
+            <% } %>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Student Tracker. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

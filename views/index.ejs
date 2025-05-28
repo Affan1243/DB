@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Tracker Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Tracker</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Dashboard</a></li>
+                    <li><a href="/students">Students</a></li>
+                    <li><a href="/attendance">Attendance</a></li>
+                    <li><a href="/assignments">Assignments</a></li>
+                    <li><a href="/courses">Courses</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>Welcome to the Student Tracker Dashboard</h2>
+        <p>Use the navigation above to manage students, attendance, assignments, and courses.</p>
+
+        <section class="dashboard-section">
+            <h3>Quick Actions</h3>
+            <div class="quick-actions-grid">
+                <a href="/students/" class="action-card">
+                    <h4>Add New Student</h4>
+                    <p>Register a new student in the system.</p>
+                </a>
+                <a href="/attendance/" class="action-card">
+                    <h4>Record Attendance</h4>
+                    <p>Mark attendance for a class session.</p>
+                </a>
+                <a href="/assignments/" class="action-card">
+                    <h4>Create Assignment</h4>
+                    <p>Add a new assignment for a course.</p>
+                </a>
+                <a href="/courses/" class="action-card">
+                    <h4>Add New Course</h4>
+                    <p>Register a new course.</p>
+                </a>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <h3>Recent Activity (Example - data will come from server)</h3>
+            <div class="recent-activity">
+                <p>No recent activity to display yet. Add some data!</p>
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Student Tracker. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

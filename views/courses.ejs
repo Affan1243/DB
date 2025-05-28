@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Courses</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Tracker</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Dashboard</a></li>
+                    <li><a href="/students">Students</a></li>
+                    <li><a href="/attendance">Attendance</a></li>
+                    <li><a href="/assignments">Assignments</a></li>
+                    <li><a href="/courses">Courses</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2>Manage Courses</h2>
+
+        <section class="form-section">
+            <h3>Add New Course</h3>
+            <form action="/courses" method="POST" class="data-form">
+                <div class="form-group">
+                    <label for="courseCode">Course Code:</label>
+                    <input type="text" id="courseCode" name="courseCode" required>
+                </div>
+                <div class="form-group">
+                    <label for="courseName">Course Name:</label>
+                    <input type="text" id="courseName" name="courseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="teacherId">Assigned Teacher:</label>
+                    <select id="teacherId" name="teacherId">
+                        <option value="">Select a Teacher (Optional)</option>
+                        <% if (teachers && teachers.length > 0) { %>
+                            <% teachers.forEach(teacher => { %>
+                                <option value="<%= teacher.teacher_id %>"><%= teacher.first_name %> <%= teacher.last_name %></option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate" value="<%= new Date().toISOString().slice(0,10) %>">
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" name="endDate">
+                </div>
+                <button type="submit" class="btn">Add Course</button>
+            </form>
+        </section>
+
+        <section class="data-display-section">
+            <h3>All Courses</h3>
+            <% if (courses && courses.length > 0) { %>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Teacher</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% courses.forEach(course => { %>
+                    <tr>
+                        <td><%= course.course_id %></td>
+                        <td><%= course.course_code %></td>
+                        <td><%= course.course_name %></td>
+                        <td><%= course.teacher_first_name ? course.teacher_first_name + ' ' + course.teacher_last_name : 'N/A' %></td>
+                        <td><%= course.start_date ? new Date(course.start_date).toLocaleDateString() : 'N/A' %></td>
+                        <td><%= course.end_date ? new Date(course.end_date).toLocaleDateString() : 'N/A' %></td>
+                        <td>
+                            <form action="/enrollments/add" method="GET" style="display:inline;">
+                                <input type="hidden" name="courseId" value="<%= course.course_id %>">
+                                <button type="submit" class="btn btn-small">Enroll Students</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <% } else { %>
+            <p>No courses found. Add a new course using the form above.</p>
+            <% } %>
+        </section>
+
+        <section class="data-display-section">
+            <h3>Enroll Students in Course</h3>
+            <% if (selectedCourse) { %>
+                <h4>Course: <%= selectedCourse.course_name %> (<%= selectedCourse.course_code %>)</h4>
+                <form action="/enrollments" method="POST" class="data-form">
+                    <input type="hidden" name="courseId" value="<%= selectedCourse.course_id %>">
+                    <div class="form-group">
+                        <label for="studentId">Select Student:</label>
+                        <select id="studentId" name="studentId" required>
+                            <option value="">Select a Student</option>
+                            <% if (students && students.length > 0) { %>
+                                <% students.forEach(student => { %>
+                                    <option value="<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %> (<%= student.student_unique_id %>)</option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Enroll Student</button>
+                </form>
+
+                <h4>Enrolled Students:</h4>
+                <% if (enrolledStudents && enrolledStudents.length > 0) { %>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Enrollment Date</th>
+                            <th>Grade Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% enrolledStudents.forEach(enrollment => { %>
+                        <tr>
+                            <td><%= enrollment.first_name %> <%= enrollment.last_name %></td>
+                            <td><%= new Date(enrollment.enrollment_date).toLocaleDateString() %></td>
+                            <td><%= enrollment.grade_status %></td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+                <% } else { %>
+                <p>No students currently enrolled in this course.</p>
+                <% } %>
+
+            <% } else if (courses && courses.length > 0) { %>
+                <p>Select a course from the list above to enroll students.</p>
+            <% } %>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Student Tracker. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
