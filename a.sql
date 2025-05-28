@@ -1,20 +1,17 @@
-
 CREATE DATABASE IF NOT EXISTS student_tracker_db;
 USE student_tracker_db;
 
--- 1. Users Table (for authentication/roles)
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL, -- Store hashed passwords
+    password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'teacher', 'student') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Teachers Table
 CREATE TABLE IF NOT EXISTS teachers (
     teacher_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE, -- Link to users table
+    user_id INT UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE,
@@ -23,22 +20,20 @@ CREATE TABLE IF NOT EXISTS teachers (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- 3. Students Table
 CREATE TABLE IF NOT EXISTS students (
     student_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE, -- Link to users table (optional, if students have logins)
+    user_id INT UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    student_unique_id VARCHAR(50) NOT NULL UNIQUE, -- e.g., university ID
+    student_unique_id VARCHAR(50) NOT NULL UNIQUE, 
     email VARCHAR(100) UNIQUE,
     date_of_birth DATE,
     enrollment_date DATE,
-    total_present_days INT DEFAULT 0, -- Added for trigger
-    total_absent_days INT DEFAULT 0,  -- Added for trigger
+    total_present_days INT DEFAULT 0, 
+    total_absent_days INT DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- 4. Courses Table
 CREATE TABLE IF NOT EXISTS courses (
     course_id INT AUTO_INCREMENT PRIMARY KEY,
     course_code VARCHAR(20) NOT NULL UNIQUE,
@@ -50,19 +45,17 @@ CREATE TABLE IF NOT EXISTS courses (
     FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE SET NULL
 );
 
--- 5. Enrollments Table (Student-Course relationship)
 CREATE TABLE IF NOT EXISTS enrollments (
     enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
     course_id INT NOT NULL,
-    enrollment_date DATE DEFAULT CURRENT_DATE,
-    grade_status VARCHAR(50), -- e.g., 'In Progress', 'Completed', 'Withdrawn'
+    enrollment_date DATE,
+    grade_status VARCHAR(50),
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
-    UNIQUE (student_id, course_id) -- A student can only enroll in a course once
+    UNIQUE (student_id, course_id)
 );
 
--- 6. Attendance Sessions Table (Represents a specific class/lecture)
 CREATE TABLE IF NOT EXISTS attendance_sessions (
     session_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
@@ -72,7 +65,6 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
 
--- 7. Attendance Records Table (Individual student attendance for a session)
 CREATE TABLE IF NOT EXISTS attendance_records (
     record_id INT AUTO_INCREMENT PRIMARY KEY,
     enrollment_id INT NOT NULL,
@@ -82,10 +74,9 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (enrollment_id) REFERENCES enrollments(enrollment_id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES attendance_sessions(session_id) ON DELETE CASCADE,
-    UNIQUE (enrollment_id, session_id) -- A student can only have one record per session
+    UNIQUE (enrollment_id, session_id)
 );
 
--- 8. Assignments Table
 CREATE TABLE IF NOT EXISTS assignments (
     assignment_id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT NOT NULL,
@@ -96,7 +87,6 @@ CREATE TABLE IF NOT EXISTS assignments (
     FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
 
--- 9. Submissions Table (Student submissions for assignments)
 CREATE TABLE IF NOT EXISTS submissions (
     submission_id INT AUTO_INCREMENT PRIMARY KEY,
     assignment_id INT NOT NULL,
@@ -106,13 +96,9 @@ CREATE TABLE IF NOT EXISTS submissions (
     feedback TEXT,
     FOREIGN KEY (assignment_id) REFERENCES assignments(assignment_id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-    UNIQUE (assignment_id, student_id) -- A student can only submit an assignment once
+    UNIQUE (assignment_id, student_id) 
 );
 
-
--- Trigger: update_student_attendance_summary
--- This trigger updates the total_present_days or total_absent_days in the students table
--- whenever a new attendance record is inserted.
 DELIMITER //
 CREATE TRIGGER update_student_attendance_summary
 AFTER INSERT ON attendance_records
@@ -120,7 +106,6 @@ FOR EACH ROW
 BEGIN
     DECLARE student_id_val INT;
 
-    -- Get the student_id from the enrollment_id
     SELECT student_id INTO student_id_val
     FROM enrollments
     WHERE enrollment_id = NEW.enrollment_id;
@@ -138,47 +123,65 @@ END;
 //
 DELIMITER ;
 
--- Stored Procedure: GetStudentCourseSummary
--- This procedure retrieves a summary of a student's courses, including attendance and assignment scores.
-DELIMITER //
-CREATE PROCEDURE GetStudentCourseSummary(IN p_student_id INT)
+DELIMITER //  -- Switching the delimiter to '//' so we can define a multi-line procedure without confusing MySQL
+CREATE PROCEDURE GetStudentCourseSummary(IN p_student_id INT)  -- Defining a stored procedure named 'GetStudentCourseSummary' with one input parameter: the student ID
 BEGIN
     SELECT
-        s.first_name,
-        s.last_name,
-        c.course_name,
-        c.course_code,
-        t.first_name AS teacher_first_name,
-        t.last_name AS teacher_last_name,
-        e.enrollment_date,
-        e.grade_status,
+        s.first_name,  -- Student’s first name
+        s.last_name,   -- Student’s last name
+        c.course_name, -- Name of the course the student is enrolled in
+        c.course_code, -- Course code (e.g., CS101, MATH202)
+        t.first_name AS teacher_first_name,  -- First name of the course's teacher
+        t.last_name AS teacher_last_name,    -- Last name of the course's teacher
+        e.enrollment_date,   -- Date when the student enrolled in the course
+        e.grade_status,      -- Current grade status for this course (e.g., "Pass", "Fail", "In Progress")
+
+        -- Subquery to count how many times the student was marked 'Present' in this course
         (SELECT COUNT(*) FROM attendance_records ar
          JOIN attendance_sessions ass ON ar.session_id = ass.session_id
          JOIN enrollments enr ON ar.enrollment_id = enr.enrollment_id
          WHERE enr.student_id = s.student_id AND ass.course_id = c.course_id AND ar.status = 'Present') AS total_present_in_course,
+
+        -- Subquery to count how many times the student was marked 'Absent' in this course
         (SELECT COUNT(*) FROM attendance_records ar
          JOIN attendance_sessions ass ON ar.session_id = ass.session_id
          JOIN enrollments enr ON ar.enrollment_id = enr.enrollment_id
          WHERE enr.student_id = s.student_id AND ass.course_id = c.course_id AND ar.status = 'Absent') AS total_absent_in_course,
-        GROUP_CONCAT(DISTINCT CONCAT(a.assignment_name, ' (Score: ', COALESCE(sub.score, 'N/A'), '/', a.max_score, ')') ORDER BY a.due_date SEPARATOR '; ') AS assignment_scores
+
+        -- Concatenate all assignment names with their scores (or 'N/A' if not submitted) and max score, separated by semicolons
+        GROUP_CONCAT(
+            DISTINCT CONCAT(
+                a.assignment_name, 
+                ' (Score: ', 
+                COALESCE(sub.score, 'N/A'), 
+                '/', 
+                a.max_score, 
+                ')'
+            ) 
+            ORDER BY a.due_date SEPARATOR '; '
+        ) AS assignment_scores
+
     FROM
-        students s
+        students s  -- Starting from the students table
     JOIN
-        enrollments e ON s.student_id = e.student_id
+        enrollments e ON s.student_id = e.student_id  -- Joining enrollments to find which courses the student is in
     JOIN
-        courses c ON e.course_id = c.course_id
+        courses c ON e.course_id = c.course_id  -- Joining courses to get course info
     LEFT JOIN
-        teachers t ON c.teacher_id = t.teacher_id
+        teachers t ON c.teacher_id = t.teacher_id  -- Joining teachers (if any assigned) to the course
     LEFT JOIN
-        assignments a ON c.course_id = a.course_id
+        assignments a ON c.course_id = a.course_id  -- Joining assignments related to the course
     LEFT JOIN
-        submissions sub ON a.assignment_id = sub.assignment_id AND s.student_id = sub.student_id
+        submissions sub ON a.assignment_id = sub.assignment_id AND s.student_id = sub.student_id  -- Joining submissions to get the student's scores
+
     WHERE
-        s.student_id = p_student_id
+        s.student_id = p_student_id  -- Only fetch data for the specified student ID
+
     GROUP BY
-        s.student_id, c.course_id
+        s.student_id, c.course_id  -- Grouping results by student and course, since we’re combining multiple rows
+
     ORDER BY
-        c.course_name;
+        c.course_name;  -- Sort the output by course name alphabetically
 END;
-//
-DELIMITER ;
+//  -- End of the stored procedure body
+DELIMITER ;  -- Switch back to the default semicolon delimiter
